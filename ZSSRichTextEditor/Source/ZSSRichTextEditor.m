@@ -36,7 +36,8 @@ static Class hackishFixClass = Nil;
     
     UIView *browserView = nil;
     for (UIView *subview in scrollView.subviews) {
-        if ([NSStringFromClass([subview class]) hasPrefix:@"WKWebBrowserView"]) {
+        if ([NSStringFromClass([subview class]) hasPrefix:@"WKWebBrowserView"]
+            || [NSStringFromClass([subview class]) hasPrefix:@"WKContent"]) {
             browserView = subview;
             break;
         }
@@ -110,7 +111,7 @@ static Class hackishFixClass = Nil;
 /*
  *  WKWebView for writing/editing/displaying the content
  */
-@property (nonatomic, strong) WKWebView *editorView;
+//@property (nonatomic, strong) WKWebView *editorView;
 
 /*
  *  ZSSTextView for displaying the source code for what is displayed in the editor view
@@ -230,6 +231,22 @@ static Class hackishFixClass = Nil;
  */
 - (BOOL)isIpad;
 
+// ------
+// EDIT BY Edwin Feng
+// 2020-08-28 14:03:03
+// ------
+
+/// set the editor frame , required
+/// have to use it before "smme_use_default_ui" .
+- (void) smme_set_view_frame : (CGRect) frame ;
+
+/// whether need the ui or not ,
+/// if custom , do not use this method .
+- (void) smme_use_default_ui ;
+@property (nonatomic , assign , readwrite) CGRect rect_frame;
+
+// ------
+
 @end
 
 /*
@@ -255,61 +272,8 @@ static CGFloat kDefaultScale = 0.5;
     self.shouldShowKeyboard = YES;
     self.formatHTML = YES;
     
-    //Initalise enabled toolbar items array
-    self.enabledToolbarItems = [[NSArray alloc] init];
-    
-    //Frame for the source view and editor view
-    CGRect frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height);
-    
-    //Source View
-    [self createSourceViewWithFrame:frame];
-    
-    //Editor View
-    [self createEditorViewWithFrame:frame];
-    
-    //Image Picker used to allow the user insert images from the device (base64 encoded)
-    [self setUpImagePicker];
-    
-    //Scrolling View
-    [self createToolBarScroll];
-    
-    //Toolbar with icons
-    [self createToolbar];
-    
-    //Parent holding view
-    [self createParentHoldingView];
-    
-    //Hide Keyboard
-    if (![self isIpad]) {
-        NSBundle* bundle = [NSBundle bundleForClass:[ZSSRichTextEditor class]];
-        
-        // Toolbar holder used to crop and position toolbar
-        UIView *toolbarCropper = [[UIView alloc] initWithFrame:CGRectMake(self.view.frame.size.width-44, 0, 44, 44)];
-        toolbarCropper.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin;
-        toolbarCropper.clipsToBounds = YES;
-        
-        UIButton *btn = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, 44, 44)];
-        
-        [btn addTarget:self action:@selector(dismissKeyboard) forControlEvents:UIControlEventTouchUpInside];
-        UIImage *image = [[UIImage imageNamed:@"ZSSkeyboard.png" inBundle:bundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-        [btn setImage:image forState:UIControlStateNormal];
-        [btn setTintColor:[self barButtonItemDefaultColor]];
-        
-        [toolbarCropper addSubview:btn];
-        
-        [self.toolbarHolder addSubview:toolbarCropper];
-        
-        UIView *line = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 0.6f, 44)];
-        line.backgroundColor = [UIColor lightGrayColor];
-        line.alpha = 0.7f;
-        [toolbarCropper addSubview:line];
-        
-    }
-    
-    [self.view addSubview:self.toolbarHolder];
-    
-    //Build the toolbar
-    [self buildToolbar];
+    [self smme_set_view_frame:self.rect_frame];
+    [self smme_use_default_ui];
     
     //Load Resources
     if (!self.resourcesLoaded) {
@@ -2222,6 +2186,14 @@ static CGFloat kDefaultScale = 0.5;
     // Correct Curve
     UIViewAnimationOptions animationOptions = curve << 16;
     
+    if (self.is_using_custom_footer) {
+        [self smme_with_keyboard_end_y:keyboardEnd.origin.y
+                                height:keyboardHeight
+                              duration:duration
+                     animation_options:animationOptions];
+        return;
+    }
+    
     const int extraHeight = 10;
     
     if (keyboardEnd.origin.y < [[UIScreen mainScreen] bounds].size.height) {
@@ -2384,6 +2356,86 @@ static CGFloat kDefaultScale = 0.5;
 #pragma mark - Memory Warning Section
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
+}
+
+#pragma mark - Changed Code Area
+// Should alway pinned at bottom
+
+- (instancetype) init_with_frame : (CGRect) frame {
+    if ((self = [super init])) {
+        self.rect_frame = frame;
+    }
+    return self;
+}
+
+- (void) smme_set_view_frame : (CGRect) frame {
+    //Frame for the source view and editor view
+    if (frame.size.width <= 0  || frame.size.height <= 0) {
+        frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height);
+    }
+    
+    //Source View
+    [self createSourceViewWithFrame:frame];
+    
+    //Editor View
+    [self createEditorViewWithFrame:frame];
+}
+
+- (void) smme_use_default_ui {
+    //Initalise enabled toolbar items array
+    self.enabledToolbarItems = [[NSArray alloc] init];
+    
+    //Image Picker used to allow the user insert images from the device (base64 encoded)
+    [self setUpImagePicker];
+    
+    //Scrolling View
+    [self createToolBarScroll];
+    
+    //Toolbar with icons
+    [self createToolbar];
+    
+    //Parent holding view
+    [self createParentHoldingView];
+    
+    //Hide Keyboard
+    if (![self isIpad]) {
+        NSBundle* bundle = [NSBundle bundleForClass:[ZSSRichTextEditor class]];
+        
+        // Toolbar holder used to crop and position toolbar
+        UIView *toolbarCropper = [[UIView alloc] initWithFrame:CGRectMake(self.view.frame.size.width-44, 0, 44, 44)];
+        toolbarCropper.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin;
+        toolbarCropper.clipsToBounds = YES;
+        
+        UIButton *btn = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, 44, 44)];
+        
+        [btn addTarget:self action:@selector(dismissKeyboard) forControlEvents:UIControlEventTouchUpInside];
+        UIImage *image = [[UIImage imageNamed:@"ZSSkeyboard.png" inBundle:bundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        [btn setImage:image forState:UIControlStateNormal];
+        [btn setTintColor:[self barButtonItemDefaultColor]];
+        
+        [toolbarCropper addSubview:btn];
+        
+        [self.toolbarHolder addSubview:toolbarCropper];
+        
+        UIView *line = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 0.6f, 44)];
+        line.backgroundColor = [UIColor lightGrayColor];
+        line.alpha = 0.7f;
+        [toolbarCropper addSubview:line];
+        
+    }
+    
+    [self.view addSubview:self.toolbarHolder];
+    
+    //Build the toolbar
+    [self buildToolbar];
+}
+
+#pragma mark - --
+- (void) smme_with_keyboard_end_y : (CGFloat) f_end_y
+                           height : (CGFloat) f_height
+                         duration : (CGFloat) f_duration
+                animation_options : (UIViewAnimationOptions) opts {
+// for inherit
 }
 
 @end

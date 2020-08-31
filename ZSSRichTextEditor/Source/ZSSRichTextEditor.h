@@ -11,6 +11,8 @@
 #import "HRColorPickerViewController.h"
 #import "ZSSFontsViewController.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 /**
  *  The types of toolbar items that can be added
  */
@@ -233,4 +235,64 @@ static NSString * const ZSSEditorContent = @"document.activeElement.id=='zss_edi
  */
 - (void)setCSS:(NSString *)css;
 
+// EDITED BY Edwin Feng
+// for custom editor .
+// 2020-08-28 03:58:17
+// ------
+
+- (instancetype) init_with_frame : (CGRect) frame ;
+@property (nonatomic , assign , readonly) CGRect rect_frame;
+@property (nonatomic , assign) BOOL is_using_custom_footer;
+
+/// not available if using the default UI .
+- (void) smme_with_keyboard_end_y : (CGFloat) f_end_y
+                           height : (CGFloat) f_height
+                         duration : (CGFloat) f_duration
+                animation_options : (UIViewAnimationOptions) opts ;
+
+/// the original , internal functions' bridge .
+
+@property (nonatomic, strong) WKWebView *editorView;
+
+- (void)removeFormat ;
+
+// Text alignment (in use)
+- (void)alignLeft ;
+- (void)alignCenter ;
+- (void)alignRight ;
+- (void)alignFull ;
+
+// font (in use)
+- (void)setBold ;
+- (void)setItalic ;
+
+// format
+- (void)setUnderline ; // (in use)
+- (void)setStrikethrough ; // (in use)
+- (void)setSubscript ;
+- (void)setSuperscript ;
+
+// list (in use)
+- (void)setUnorderedList ;
+- (void)setOrderedList ;
+
+// paragraph
+- (void)paragraph ;
+- (void)setHR ;
+- (void)setIndent ;
+- (void)setOutdent ;
+
+// title (in use)
+// simulate the fonts 
+- (void)heading1 ;
+- (void)heading2 ;
+- (void)heading3 ;
+- (void)heading4 ;
+- (void)heading5 ;
+- (void)heading6 ;
+
+// ------
+
 @end
+
+NS_ASSUME_NONNULL_END
